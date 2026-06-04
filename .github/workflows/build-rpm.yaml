@@ -1,0 +1,81 @@
+name: Build DKMS RPM
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: almalinux:9
+
+    steps:
+      - name: Obtain git within container for checkout
+        run: dnf install -y git
+
+      - name: Checkout source
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          set-safe-directory: true
+
+      - name: Mark repository as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Enable CRB and EPEL
+        run: |
+          dnf install -y epel-release
+          dnf config-manager --set-enabled crb
+
+      - name: Install build tools
+        run: dnf install -y rpm-build rpmdevtools git
+
+      - name: Determine version
+        run: |
+          eval "$(sed -n '/^#define  *JOOL_VERSION_\(MAJOR\|MINOR\|REV\) / {
+                            s/^#define  *//; s/  */=/p;
+                          }' src/common/xlat.h)"
+          JOOLVER="${JOOL_VERSION_MAJOR}.${JOOL_VERSION_MINOR}.${JOOL_VERSION_REV}"
+
+          if git describe --exact-match --tags HEAD 2>/dev/null; then
+            MODULE_VERSION=${JOOLVER}
+          else
+            GITVER="$(git describe --always | tr - . 2>/dev/null)"
+            test -z "$GITVER" && GITVER="$(date +%Y%m%d)"
+            MODULE_VERSION=${JOOLVER}.git.${GITVER}
+          fi
+
+          echo "MODULE_VERSION=${JOOLVER}.git.${GITVER}" >> $GITHUB_ENV
+
+      - name: Create source tarball
+        run: |
+          rpmdev-setuptree
+          git archive \
+            --format=tar.gz \
+            --prefix=jool-${MODULE_VERSION}/ \
+            HEAD \
+            -o ~/rpmbuild/SOURCES/jool-${MODULE_VERSION}.tar.gz
+
+      - name: Build RPM
+        run: |
+          rpmbuild -bb \
+            --define "module_version ${MODULE_VERSION}" \
+            packaging/jool-dkms.spec
+
+      - name: Upload RPM
+        uses: actions/upload-artifact@v4
+        with:
+          name: jool-dkms-rpm
+          path: ~/rpmbuild/RPMS/**/*.rpm
+          retention-days: 30
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ~/rpmbuild/RPMS/**/*.rpm
