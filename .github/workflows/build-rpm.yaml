@@ -149,7 +149,7 @@ jobs:
           username: ${{ secrets.REPO_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            echo ${{ secrets.REPO_SUDO_PW }} | sudo -S bash -c 'find /home/${{ secrets.REPO_USERNAME }}/artifacts -type f -name "*.rpm" -exec mv {} /mnt/repository/$RELEASE_TYPE/rhel/ \;'
+            echo ${{ secrets.REPO_SUDO_PW }} | sudo -S bash -c 'find /home/${{ secrets.REPO_USERNAME }}/artifacts -type f -name "*.rpm" -exec mv {} /mnt/repository/${{ env.RELEASE_TYPE }}/rhel/ \;'
             rm -rf /home/${{ secrets.REPO_USERNAME }}/artifacts
 
       - name: Sign Packages
@@ -159,4 +159,4 @@ jobs:
           username: ${{ secrets.REPO_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            echo ${{ secrets.REPO_SUDO_PW }} | sudo -S bash /mnt/repository/$RELEASE_TYPE/repo.sh
+            echo ${{ secrets.REPO_SUDO_PW }} | sudo -S bash /mnt/repository/${{ env.RELEASE_TYPE }}/repo.sh
