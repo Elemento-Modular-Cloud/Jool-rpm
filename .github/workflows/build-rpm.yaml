@@ -159,4 +159,4 @@ jobs:
           username: ${{ secrets.REPO_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            echo ${{ secrets.REPO_SUDO_PW }} | sudo -S bash /mnt/repository/$RELEASE_TYPE/repo.sh
+            echo ${{ secrets.REPO_SUDO_PW }} | sudo -S bash /mnt/repository/${{ env.RELEASE_TYPE }}/repo.sh
