@@ -51,6 +51,7 @@ jobs:
           fi
 
           echo "MODULE_VERSION=${MODULE_VERSION}" >> $GITHUB_ENV
+          echo "JOOL_VERSION=${JOOLVER}" >> $GITHUB_ENV
 
       - name: Create source tarball
         run: |
@@ -65,6 +66,7 @@ jobs:
         run: |
           rpmbuild -bb \
             --define "module_version ${MODULE_VERSION}" \
+            --define "jool_version ${JOOL_VERSION}" \
             packaging/jool-dkms.spec
 
       - name: Upload RPM
